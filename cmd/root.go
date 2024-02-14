@@ -14,7 +14,7 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "stressTest",
+	Use:   "stresstest",
 	Short: "Realiza o teste de stress em uma determinada URL",
 	Long: `
 Este app realiza o teste de carga em um serviço web.
@@ -99,10 +99,8 @@ func stressTest(url string, numReq, concurrency int) {
 	//	println()
 	//
 	dif := fim.Sub(inicio)
-	fmt.Printf("Tempo total de execução: %s\n", dif.String())
-	println()
-	fmt.Printf("Quantidade total de requests realizados: %v", contador)
-	println()
+	fmt.Printf("Tempo total de execução: %s\n\n", dif.String())
+	fmt.Printf("Quantidade total de requests realizados: %v\n", contador)
 
 	var detalhamento, detgen string
 	var ok, erro int
@@ -119,10 +117,8 @@ func stressTest(url string, numReq, concurrency int) {
 	}
 	detalhamento += detgen
 
-	fmt.Printf("Quantidade total de requests com sucesso (http status 200): %d", ok)
-	println()
-	fmt.Printf("Quantidade total de requests com Erro: %d", erro)
-	println()
-	println("Distribuição dos erros:")
-	println(detalhamento)
+	fmt.Printf("Quantidade total de requests com sucesso (http status 200): %d\n", ok)
+	fmt.Printf("Quantidade total de requests com Erro: %d\n", erro)
+	fmt.Printf("Distribuição dos erros:\n")
+	fmt.Printf("%s\n", detalhamento)
 }
