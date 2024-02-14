@@ -52,6 +52,9 @@ func init() {
 }
 
 func stressTest(url string, numReq, concurrency int) {
+	var m sync.Mutex
+	var contador int64
+
 	fmt.Printf("URL: %s, Requests: %d, Concurrency: %d\n\n", url, numReq, concurrency)
 
 	inicio := time.Now()
@@ -60,38 +63,66 @@ func stressTest(url string, numReq, concurrency int) {
 	wg := sync.WaitGroup{}
 	wg.Add(numReq)
 
+	hash := NewRepository()
+
 	go func() {
+		defer close(ch)
 		for i := 0; i < concurrency; i++ {
 			ch <- url
 		}
-		close(ch)
 	}()
 
 	for i := 0; i < numReq; i++ {
-		go func() {
-			res, err := http.Get(url)
+		go func(c chan string, m *sync.Mutex) {
+			res, err := http.Get(<-c)
+			m.Lock()
 			if err != nil {
-				println("erro chamando URL. Verifique o formato da URL.")
+				//println("erro chamando URL. Verifique o formato da URL.")
+				hash.Incrementa("999")
 			} else {
-				println("URL OK")
-				fmt.Printf("Status %d\n", res.StatusCode)
+				//println("URL OK")
+				//fmt.Printf("Status %d\n", res.StatusCode)
+				hash.Incrementa(fmt.Sprint(res.StatusCode))
 			}
+			contador++
+			m.Unlock()
 			wg.Done()
-		}()
+		}(ch, &m)
 	}
 	wg.Wait()
 
-	println()
-
 	fim := time.Now()
-	fmt.Printf("Inicio: %v:%v:%v:%v", inicio.Hour(), inicio.Minute(), inicio.Second(), inicio.Nanosecond())
+	//	fmt.Printf("Inicio: %v:%v:%v:%v", inicio.Hour(), inicio.Minute(), inicio.Second(), inicio.Nanosecond())
+	//	println()
+	//	fmt.Printf("Fim: %v:%v:%v:%v", fim.Hour(), fim.Minute(), fim.Second(), fim.Nanosecond())
+	//	println()
+	//	println()
+	//
+	dif := fim.Sub(inicio)
+	fmt.Printf("Tempo total de execução: %s\n", dif.String())
 	println()
-	fmt.Printf("Fim: %v:%v:%v:%v", fim.Hour(), fim.Minute(), fim.Second(), fim.Nanosecond())
-	println()
+	fmt.Printf("Quantidade total de requests realizados: %v", contador)
 	println()
 
-	dif := fim.Sub(inicio)
-	//	duration, _ := dif.ParseDuration("4h30m")
-	//	fmt.Printf("Duração: %v:%v:%v:%v", dif.Hours(), dif.Minutes(), dif.Seconds(), dif.Nanoseconds())
-	println(dif.String())
+	var detalhamento, detgen string
+	var ok, erro int
+	for _, item := range hash.DataHM {
+		if item.Key == "200" {
+			ok = item.Value
+		} else if item.Key == "999" {
+			erro += item.Value
+			detgen += fmt.Sprintf("  - Outros erros, Quantidade: %d\n", item.Value)
+		} else {
+			erro += item.Value
+			detalhamento += fmt.Sprintf("  - Erro %s, Quantidade: %d\n", item.Key, item.Value)
+		}
+	}
+	detalhamento += detgen
+
+	fmt.Printf("Quantidade total de requests com sucesso (http status 200): %d", ok)
+	println()
+	fmt.Printf("Quantidade total de requests com Erro: %d", erro)
+	println()
+	println("Distribuição dos erros:")
+	println(detalhamento)
 }
