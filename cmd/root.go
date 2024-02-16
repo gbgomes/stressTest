@@ -66,27 +66,32 @@ func stressTest(url string, numReq, concurrency int) {
 	hash := NewRepository()
 
 	go func() {
-		defer close(ch)
-		for i := 0; i < concurrency; i++ {
+		//defer close(ch)
+		for i := 0; i < numReq; i++ {
 			ch <- url
 		}
 	}()
 
-	for i := 0; i < numReq; i++ {
+	for i := 0; i < concurrency; i++ {
 		go func(c chan string, m *sync.Mutex) {
-			res, err := http.Get(<-c)
-			m.Lock()
-			if err != nil {
-				//println("erro chamando URL. Verifique o formato da URL.")
-				hash.Incrementa("999")
-			} else {
-				//println("URL OK")
-				//fmt.Printf("Status %d\n", res.StatusCode)
-				hash.Incrementa(fmt.Sprint(res.StatusCode))
+			for url := range ch {
+				//localurl := url
+				//println(localurl)
+				res, err := http.Get(url)
+				m.Lock()
+				if err != nil {
+					//println("erro chamando URL. Verifique o formato da URL.")
+					//println(err.Error())
+					hash.Incrementa("999")
+				} else {
+					//println("URL OK")
+					//fmt.Printf("Status %d\n", res.StatusCode)
+					hash.Incrementa(fmt.Sprint(res.StatusCode))
+				}
+				contador++
+				m.Unlock()
+				wg.Done()
 			}
-			contador++
-			m.Unlock()
-			wg.Done()
 		}(ch, &m)
 	}
 	wg.Wait()
